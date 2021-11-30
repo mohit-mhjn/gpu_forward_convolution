@@ -1,0 +1,119 @@
+wirelessprv-10-193-119-149:ece408-project mohit_mhjn$ rai -p ece408_project/
+Dynamic Rate Limit: 30s
+✱ Checking your authentication credentials.
+✱ Preparing your project directory for upload.
+✱ Uploading your project directory. This may take a few minutes.
+ 280.80 KiB / 280.80 KiB  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  100.00% 2.63 MiB/s 0s
+✱ Folder uploaded. Server is now processing your submission.
+✱ Your job request has been posted to the queue.
+✱ Server has accepted your job submission and started to configure the container.
+✱ Downloading your code.
+✱ Using jnativ/ece408_minidnn_docker_sp21:latest as container image.
+✱ Starting container.
+✱ Running /bin/bash -c "mkdir /build/student_code && cp -rv /src/* /build/student_code"
+'/src/custom' -> '/build/student_code/custom'
+'/src/custom/cpu-new-forward.cc' -> '/build/student_code/custom/cpu-new-forward.cc'
+'/src/custom/cpu-new-forward.h' -> '/build/student_code/custom/cpu-new-forward.h'
+'/src/custom/gpu-new-forward.h' -> '/build/student_code/custom/gpu-new-forward.h'
+'/src/custom/new-forward.cu' -> '/build/student_code/custom/new-forward.cu'
+'/src/m1.cc' -> '/build/student_code/m1.cc'
+'/src/m1_report_template.docx' -> '/build/student_code/m1_report_template.docx'
+'/src/m2.cc' -> '/build/student_code/m2.cc'
+'/src/m2_report_template.docx' -> '/build/student_code/m2_report_template.docx'
+'/src/m3.cc' -> '/build/student_code/m3.cc'
+'/src/rai_build.yml' -> '/build/student_code/rai_build.yml'
+'/src/readme.md' -> '/build/student_code/readme.md'
+'/src/report.pdf' -> '/build/student_code/report.pdf'
+✱ Running /bin/bash -c "cp /ece408/project/build/weights-86.bin /build"
+✱ Running /bin/bash -c "cp -rv /src/custom/* /ece408/project/src/layer/custom"
+'/src/custom/cpu-new-forward.cc' -> '/ece408/project/src/layer/custom/cpu-new-forward.cc'
+'/src/custom/cpu-new-forward.h' -> '/ece408/project/src/layer/custom/cpu-new-forward.h'
+'/src/custom/gpu-new-forward.h' -> '/ece408/project/src/layer/custom/gpu-new-forward.h'
+'/src/custom/new-forward.cu' -> '/ece408/project/src/layer/custom/new-forward.cu'
+✱ Running /bin/bash -c "cmake  /ece408/project/ && make -j8"
+-- The C compiler identification is GNU 7.5.0
+-- The CXX compiler identification is GNU 7.5.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Looking for pthread_create
+-- Looking for pthread_create - not found
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - found
+-- Found Threads: TRUE
+-- Found CUDA: /usr/local/cuda (found version "10.2")
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /build
+[  3%] Building NVCC (Device) object src/CMakeFiles/GpuConv.dir/layer/custom/GpuConv_generated_gpu-utils.cu.o
+[  6%] Building NVCC (Device) object src/CMakeFiles/GpuConv.dir/layer/custom/GpuConv_generated_new-forward.cu.o
+Scanning dependencies of target ece408net
+[ 10%] Building CXX object CMakeFiles/ece408net.dir/ece408net.cc.o
+[ 13%] Linking CXX static library libece408net.a
+[ 13%] Built target ece408net
+Scanning dependencies of target GpuConv
+[ 17%] Linking CXX static library libGpuConv.a
+[ 17%] Built target GpuConv
+Scanning dependencies of target MiniDNNLib
+[ 20%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/conv_cpu.cc.o
+[ 24%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/max_pooling.cc.o
+[ 27%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/ave_pooling.cc.o
+[ 31%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/conv.cc.o
+[ 34%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/fully_connected.cc.o
+[ 37%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/conv_cust.cc.o
+[ 41%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/mnist.cc.o
+[ 44%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/network.cc.o
+[ 48%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/relu.cc.o
+[ 51%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/sigmoid.cc.o
+[ 55%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/softmax.cc.o
+[ 58%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/loss/cross_entropy_loss.cc.o
+[ 62%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/loss/mse_loss.cc.o
+[ 65%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/optimizer/sgd.cc.o
+[ 68%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/custom/cpu-new-forward.cc.o
+[ 72%] Linking CXX static library libMiniDNNLib.a
+[ 72%] Built target MiniDNNLib
+Scanning dependencies of target m2
+Scanning dependencies of target final
+Scanning dependencies of target m3
+Scanning dependencies of target m1
+[ 75%] Building CXX object CMakeFiles/final.dir/final.cc.o
+[ 79%] Building CXX object CMakeFiles/m2.dir/m2.cc.o
+[ 86%] Building CXX object CMakeFiles/m1.dir/m1.cc.o
+[ 86%] Building CXX object CMakeFiles/m3.dir/m3.cc.o
+[ 93%] Linking CXX executable m1
+[ 93%] Linking CXX executable m3
+[ 96%] Linking CXX executable final
+[100%] Linking CXX executable m2
+[100%] Built target final
+[100%] Built target m3
+[100%] Built target m2
+[100%] Built target m1
+✱ Running bash -c "cuda-memcheck ./m2"   \\ Output will appear after run is complete.
+========= CUDA-MEMCHECK
+Test batch size: 10000
+Loading fashion-mnist data...Done
+Loading model...Done
+Conv-GPU==
+Layer Time: 18320.1 ms
+Op Time: 17661.2 ms
+Conv-GPU==
+Layer Time: 71325.8 ms
+Op Time: 70831.2 ms
+
+Test Accuracy: 0.8714
+
+========= ERROR SUMMARY: 0 errors
+✱ The build folder has been uploaded to http://s3.amazonaws.com/files.rai-project.com/userdata/build-618582ca688109c9fd381d1b.tar.gz. The data will be present for only a short duration of time.
