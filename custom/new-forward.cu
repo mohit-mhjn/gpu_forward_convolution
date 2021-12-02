@@ -50,12 +50,11 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
     int h = h_base + h0;
     int w = w_base + w0;
 
-    const int X_tile_width = TILE_WIDTH + K - 1;
-    const int kernelDim = K;
-
     // Allocate shared memory for input kernel and image tiles
-    __shared__ float x_shared[X_tile_width*X_tile_width];
-    __shared__ float k_shared[kernelDim*kernelDim];
+    extern __shared__ float shmem[];
+    float* x_shared = &shmem[0];
+    float* k_shared = &shmem[X_tile_width * X_tile_width]; 
+    // pointing to shared memory pointer - this is already allocated
 
     float outputY = 0.0;
     for (int c = 0; c < C; c++) {
@@ -83,7 +82,6 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
         __syncthreads();
     }
     y4d(n, m, h, w) = outputY;
-}
 
 #undef y4d
 #undef x4d
