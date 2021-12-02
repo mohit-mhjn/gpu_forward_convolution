@@ -2,7 +2,7 @@
 #include <iostream>
 #include "gpu-new-forward.h"
 
-#define TILE_WIDTH 16
+#define TILE_WIDTH 32
 
 __global__ void conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
@@ -48,26 +48,27 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
     int w0 = threadIdx.x;
     
     int h = h_base + h0;
-    int w = w_base + h1;
+    int w = w_base + w0;
 
-    int X_tile_width = TILE_WIDTH + K - 1;
+    const int X_tile_width = TILE_WIDTH + K - 1;
+    const int kernelDim = K;
 
     // Allocate shared memory for input kernel and image tiles
     __shared__ float x_shared[X_tile_width*X_tile_width];
-    __shared__ float k_shared[K*K];
+    __shared__ float k_shared[kernelDim*kernelDim];
 
     float outputY = 0.0;
     for (int c = 0; c < C; c++) {
         // Load kernel for this input feature map in the GPU shared memory
         if (h0 < K && w0 < K)
         {
-            k_shared[h0][w0] = k4d(m, c, h0, w0);
+            k_shared[h0*kernelDim+w0] = k4d(m, c, h0, w0);
         }
         __syncthreads();
         for (int _p=h; _p < h_base + X_tile_width; _p += TILE_WIDTH) {
             for (int _q=w; _q < w_base + X_tile_width; _q += TILE_WIDTH) {
                 if (h < H_out && w < W_out){
-                    x_shared[(_p - h_base)*X_tile_width + _q - w_base] = x4d(n, c, h, w);
+                    x_shared[(_p - h_base)*X_tile_width + (_q - w_base)] = x4d(n, c, h, w);
                 }
             }
         }
@@ -76,7 +77,7 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
         {
             for (int q = 0; q < K; q++)
             {
-                outputY += x_shared[(h0+p)*X_tile_width+(w0+q)] * w_shared[p*K+q];
+                outputY += x_shared[(h0+p)*X_tile_width+(w0+q)] * k_shared[p*kernelDim+q];
             }
         }
         __syncthreads();
