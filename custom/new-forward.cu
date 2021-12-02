@@ -53,37 +53,36 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
     int X_tile_width = TILE_WIDTH + K - 1;
 
     // Allocate shared memory for input kernel and image tiles
-    __shared__ float x_shared[X_tile_width][X_tile_width];
-    __shared__ float k_shared[K][K];
+    __shared__ float x_shared[X_tile_width*X_tile_width];
+    __shared__ float k_shared[K*K];
 
     float outputY = 0.0;
     for (int c = 0; c < C; c++) {
         // Load kernel for this input feature map in the GPU shared memory
-            if (h0 < K && w0 < K)
-            {
-                k_shared[h0][w0] = k4d(m, c, h0, w0);
-            }
-            syncthreads();
-            for (int p = 0; )
-            if (i1 < H_out && i0 < W_out) 
-            {
-                // Load image pixels for this input feature map in the GPU shared memory 
-                x_shared[][] = x4d(i3, c, p + i1, q + i0)
-
-                for (int p = 0; p < K; p++)
-                {
-                    for (int q = 0; q < K; q++)
-                    {
-                        outputY += x4d(i3, c, p + i1, q + i0) * k4d(i2, c, p, q);
-                    }
+        if (h0 < K && w0 < K)
+        {
+            k_shared[h0][w0] = k4d(m, c, h0, w0);
+        }
+        __syncthreads();
+        for (int _p=h; _p < h_base + X_tile_width; _p += TILE_WIDTH) {
+            for (int _q=w; _q < w_base + X_tile_width; _q += TILE_WIDTH) {
+                if (h < H_out && w < W_out){
+                    x_shared[(_p - h_base)*X_tile_width + _q - w_base] = x4d(n, c, h, w);
                 }
             }
         }
-
+        __syncthreads();
+        for (int p = 0; p < K; p++)
+        {
+            for (int q = 0; q < K; q++)
+            {
+                outputY += x_shared[(h0+p)*X_tile_width+(w0+q)] * w_shared[p*K+q];
+            }
         }
-        y4d(i3, i2, i1, i0) = outputY;
+        __syncthreads();
     }
-    
+    y4d(n, m, h, w) = outputY;
+}
 
 #undef y4d
 #undef x4d
