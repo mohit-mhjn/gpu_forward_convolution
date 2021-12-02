@@ -57,31 +57,29 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
     // pointing to shared memory pointer - this is already allocated
 
     float outputY = 0.0;
-    for (int c = 0; c < C; c++) {
-        // Load kernel for this input feature map in the GPU shared memory
-        if (h0 < K && w0 < K)
-        {
-            k_shared[h0*K+w0] = k4d(m, c, h0, w0);
-        }
-        __syncthreads();
-        for (int _p=h; _p < h_base + X_tile_width; _p += TILE_WIDTH) {
-            for (int _q=w; _q < w_base + X_tile_width; _q += TILE_WIDTH) {
-                if (h < H_out && w < W_out){
+    if (h < H_out && w < W_out) {
+        for (int c = 0; c < C; c++) {
+            // Load kernel for this input feature map in the GPU shared memory
+            if (h0 < K && w0 < K)
+            {
+                k_shared[h0*K+w0] = k4d(m, c, h0, w0);
+            }
+            __syncthreads();
+            for (int _p=h; _p < h_base + X_tile_width; _p += TILE_WIDTH) {
+                for (int _q=w; _q < w_base + X_tile_width; _q += TILE_WIDTH) {
                     x_shared[(_p - h_base)*X_tile_width + (_q - w_base)] = x4d(n, c, h, w);
                 }
             }
-        }
-        __syncthreads();
-        for (int p = 0; p < K; p++)
-        {
-            for (int q = 0; q < K; q++)
-            {
-                outputY += x_shared[(h0+p)*X_tile_width+(w0+q)] * k_shared[p*K+q];
+            __syncthreads();
+            for (int p = 0; p < K; p++) {
+                for (int q = 0; q < K; q++){
+                    outputY += x_shared[(h0+p)*X_tile_width+(w0+q)] * k_shared[p*K+q];
+                }
             }
+            __syncthreads();
         }
-        __syncthreads();
+        y4d(n, m, h, w) = outputY;
     }
-    y4d(n, m, h, w) = outputY;
 
 #undef y4d
 #undef x4d
