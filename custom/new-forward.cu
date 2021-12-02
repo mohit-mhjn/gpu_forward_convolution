@@ -40,23 +40,46 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
 
     // int H_grid = H_out / TILE_WIDTH;
     int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
-    int i3 = blockIdx.x;
-    int i2 = blockIdx.y;
-    int i1 = (blockIdx.z / W_grid) * TILE_WIDTH + threadIdx.y;
-    int i0 = (blockIdx.z % W_grid) * TILE_WIDTH + threadIdx.x;
+    int n = blockIdx.x;
+    int m = blockIdx.y;
+    int h_base = (blockIdx.z / W_grid) * TILE_WIDTH;
+    int h0 = threadIdx.y;
+    int w_base = (blockIdx.z % W_grid) * TILE_WIDTH; 
+    int w0 = threadIdx.x;
+    
+    int h = h_base + h0;
+    int w = w_base + h1;
+
+    int X_tile_width = TILE_WIDTH + K - 1;
+
+    // Allocate shared memory for input kernel and image tiles
+    __shared__ float x_shared[X_tile_width][X_tile_width];
+    __shared__ float k_shared[K][K];
 
     float outputY = 0.0;
-    if (i1 < H_out && i0 < W_out) 
-    {
-        for (int c = 0; c < C; c++)
-        {
-            for (int p = 0; p < K; p++)
+    for (int c = 0; c < C; c++) {
+        // Load kernel for this input feature map in the GPU shared memory
+            if (h0 < K && w0 < K)
             {
-                for (int q = 0; q < K; q++)
+                k_shared[h0][w0] = k4d(m, c, h0, w0);
+            }
+            syncthreads();
+            for (int p = 0; )
+            if (i1 < H_out && i0 < W_out) 
+            {
+                // Load image pixels for this input feature map in the GPU shared memory 
+                x_shared[][] = x4d(i3, c, p + i1, q + i0)
+
+                for (int p = 0; p < K; p++)
                 {
-                    outputY += x4d(i3, c, p + i1, q + i0) * k4d(i2, c, p, q);
+                    for (int q = 0; q < K; q++)
+                    {
+                        outputY += x4d(i3, c, p + i1, q + i0) * k4d(i2, c, p, q);
+                    }
                 }
             }
+        }
+
         }
         y4d(i3, i2, i1, i0) = outputY;
     }
@@ -108,9 +131,10 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
     int Z = H_grid * W_grid;
     dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
     dim3 gridDim(B, M, Z);
+    size_t sharedSize = sizeof(float)*((TILE_WIDTH+K-1)*(TILE_WIDTH+K-1) + K*K);
 
     // call the kernel
-    conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
+    conv_forward_kernel<<<gridDim, blockDim, sharedSize>>>(device_y, device_x, device_k, B, M, C, H, W, K);
 }
 
 __host__ void GPUInterface::conv_forward_gpu_epilog(float *host_y, float *device_y, float *device_x, float *device_k, const int B, const int M, const int C, const int H, const int W, const int K)
