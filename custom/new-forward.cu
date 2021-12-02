@@ -4,6 +4,8 @@
 
 #define TILE_WIDTH 32
 
+// Implicit assumption that kernel dimension (K) < TILE WIDTH
+// __constant__ 
 __global__ void conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     /*
@@ -81,7 +83,7 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
             }
         }    
         __syncthreads();
-        }
+    }
 
     if (h < H_out && w < W_out) {
         y4d(n, m, h, w) = outputY;
