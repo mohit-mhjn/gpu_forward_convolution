@@ -50,24 +50,26 @@ __global__ void conv_forward_kernel(float *y, const float *x, const float *k, co
     int h = h_base + h0;
     int w = w_base + w0;
     int X_tile_width = TILE_WIDTH + K - 1;
+    
     // Allocate shared memory for input kernel and image tiles
     extern __shared__ float shmem[];
     float* x_shared = &shmem[0];
     float* k_shared = &shmem[X_tile_width * X_tile_width]; 
-    // pointing to shared memory pointer - this is already allocated
+    // pointing to shared memory pointer - this is already allocated before kernel invocation >>
 
     float outputY = 0.0;
     if (h < H_out && w < W_out) {
         for (int c = 0; c < C; c++) {
-            // Load kernel for this input feature map in the GPU shared memory
+            // Load kernel for this input feature map in the GPU shared memory >>
             if (h0 < K && w0 < K)
             {
                 k_shared[h0*K+w0] = k4d(m, c, h0, w0);
             }
             __syncthreads();
-            for (int _p=h; _p < h_base + X_tile_width; _p += TILE_WIDTH) {
-                for (int _q=w; _q < w_base + X_tile_width; _q += TILE_WIDTH) {
-                    x_shared[(_p - h_base)*X_tile_width + (_q - w_base)] = x4d(n, c, h, w);
+            // Load the image pixels here into the shared memory >>
+            for (int _p = h; _p < h_base + X_tile_width; _p += TILE_WIDTH) {
+                for (int _q = w; _q < w_base + X_tile_width; _q += TILE_WIDTH) {
+                    x_shared[(_p - h_base)*X_tile_width + (_q - w_base)] = x4d(n, c, _p, _q);
                 }
             }
             __syncthreads();
@@ -100,6 +102,7 @@ __host__ void GPUInterface::conv_forward_gpu_prolog(const float *host_y, const f
     cudaMalloc((void **)device_y_ptr, size_of_y * sizeof(float));
     cudaMalloc((void **)device_x_ptr, size_of_x * sizeof(float));
     cudaMalloc((void **)device_k_ptr, size_of_k * sizeof(float));
+
 
     // We pass double pointers for you to initialize the relevant device pointers,
     //  which are passed to the other two functions.
