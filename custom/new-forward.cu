@@ -170,8 +170,10 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
         
         for(int p = 0; p < K; p++) {
             for(int q = 0; q < K; q++) {
-                int w_u = w_base + p * K + q; 
-                device_unrolled_x[h_u * W_unroll + w_u] = x3d(c, h + p, w + q);
+                if (h+p < H && w+q < W) {
+                    int w_u = w_base + p * K + q; 
+                    device_unrolled_x[h_u * W_unroll + w_u] = x3d(c, h + p, w + q);
+                }
             }
         }
     }
