@@ -109,7 +109,7 @@ __global__ void tiled_conv_forward_kernel(float *y, const float *x, const float 
 }
 
 
-__global__ void matrixMultiplyShared(float *A, float *B, float *C, 
+__global__ void matrixMultiplyShared(const float *A, const float *B, float *C, 
                                     int numARows, int numAColumns,
                                     int numBRows, int numBColumns,
                                     int numCRows, int numCColumns) {
@@ -171,11 +171,11 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
         for(int p = 0; p < K; p++) {
             for(int q = 0; q < K; q++) {
                 int w_u = w_base + p * K + q; 
-                X_unroll[h_u * W_unroll + w_u] = x4d(c, h + p, w + q);
+                device_unrolled_x[h_u * W_unroll + w_u] = x3d(c, h + p, w + q);
             }
         }
     }
-#undef x4d
+#undef x3d
 }
 
 
@@ -267,12 +267,12 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
 
             // 2. Call the unrolling kernel for each sample image in the batch in a loop
             int CUDA_MAX_NUM_THREADS;
-            checkCudaErrors(cuDeviceGetAttribute(&CUDA_MAX_NUM_THREADS, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK));
+            cudaDeviceGetAttribute(&CUDA_MAX_NUM_THREADS, cudaDevAttrMaxThreadsPerBlock);
             int num_threads_unroll = C*H_out*W_out;
             int num_blocks_unroll = ceil(1.0*(num_threads_unroll)/CUDA_MAX_NUM_THREADS);
             dim3 gridDim(ceil(1.0*H_out*W_out/TILE_WIDTH), ceil(1.0*M/TILE_WIDTH), 1);
             dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
-            for (n=0; n < B; n++) {
+            for (int n=0; n < B; n++) {
                 unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
                 matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, device_y[n*(M*H_out*W_out)],
                                                 M, K*K*C, K*K*C, H_out*W_out, M, H_out*W_out);
