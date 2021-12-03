@@ -10,15 +10,78 @@
 OPTIMIZATION - Select an optimization number to execute forward convolution
 The meaning of each number is as indicated:
 
+0 - baseline (MP2)
 1 - Tiled shared memory convolution
 2 - Shared memory matrix multiplication and input matrix unrolling
 3 - Kernel fusion for unrolling and matrix-multiplication (requires previous optimization)
+4 - Tuning with restrict and loop unrolling
 
 ******************************************************************************************
 */
 #define OPTIMIZATION 2 // READ THE ABOVE DOCSTRING
 // __constant__ // Implicit assumption that kernel dimension (K) < TILE WIDTH
 
+__global__ void baseline_conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
+{
+    /*
+    Modify this function to implement the forward pass described in Chapter 16.
+    We have added an additional dimension to the tensors to support an entire mini-batch
+    The goal here is to be correct AND fast.
+    Function paramter definitions:
+    y - output
+    x - input
+    k - kernel
+    B - batch_size (number of images in x)
+    M - number of output feature maps
+    C - number of input feature maps
+    H - input height dimension
+    W - input width dimension
+    K - kernel height and width (K x K)
+    */
+
+    const int H_out = H - K + 1;
+    const int W_out = W - K + 1;
+
+    // (void)H_out; // silence declared but never referenced warning. remove this line when you start working
+    // (void)W_out; // silence declared but never referenced warning. remove this line when you start working
+
+    // We have some nice #defs for you below to simplify indexing. Feel free to use them, or create your own.
+    // An example use of these macros:
+    // float a = y4d(0,0,0,0)
+    // y4d(0,0,0,0) = a
+
+#define y4d(i3, i2, i1, i0) y[(i3) * (M * H_out * W_out) + (i2) * (H_out * W_out) + (i1) * (W_out) + i0]
+#define x4d(i3, i2, i1, i0) x[(i3) * (C * H * W) + (i2) * (H * W) + (i1) * (W) + i0]
+#define k4d(i3, i2, i1, i0) k[(i3) * (C * K * K) + (i2) * (K * K) + (i1) * (K) + i0]
+
+    // int H_grid = H_out / TILE_WIDTH;
+    int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
+    int i3 = blockIdx.x;
+    int i2 = blockIdx.y;
+    int i1 = (blockIdx.z / W_grid) * TILE_WIDTH + threadIdx.y;
+    int i0 = (blockIdx.z % W_grid) * TILE_WIDTH + threadIdx.x;
+
+    float outputY = 0.0;
+    if (i1 < H_out && i0 < W_out) 
+    {
+        for (int c = 0; c < C; c++)
+        {
+            for (int p = 0; p < K; p++)
+            {
+                for (int q = 0; q < K; q++)
+                {
+                    outputY += x4d(i3, c, p + i1, q + i0) * k4d(i2, c, p, q);
+                }
+            }
+        }
+        y4d(i3, i2, i1, i0) = outputY;
+    }
+    
+
+#undef y4d
+#undef x4d
+#undef k4d
+}
 
 __global__ void tiled_conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
@@ -142,11 +205,8 @@ __global__ void matrixMultiplyShared(const float *A, const float *B, float *C,
 
       __syncthreads();
     }
-
     C[Row*numCColumns + Col] = pValue;
-
   }
-
 }
 
 __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x, const int C, const int H, const int W, const int K) {
@@ -168,10 +228,10 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
         // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
         int rowOffset = threadRow * K * K;
         int current_unroll_index = rowOffset*unrolledWidth + threadCol;
-
-        if (row < H_out && col < W_out) {
-            for(int p = 0; p < K; p++) {
-                for(int q = 0; q < K; q++) {
+            
+        for(int p = 0; p < K; p++) {
+            for(int q = 0; q < K; q++) {
+                if (row + p < H_out && col + q < W_out) {
                     device_unrolled_x[current_unroll_index] = x3d(threadRow, row + p, col + q);
                     current_unroll_index += unrolledWidth;
                 }
@@ -181,30 +241,70 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
 #undef x3d
 }
 
+__global__ void loop_unroll_restrict_conv_forward_kernel(float __restrict *y, const __restrict float *x, const  float __restrict *k, const int B, const int M, const int C, const int H, const int W, const int K)
+{
+    /*
+    Modify this function to implement the forward pass described in Chapter 16.
+    We have added an additional dimension to the tensors to support an entire mini-batch
+    The goal here is to be correct AND fast.
+    Function paramter definitions:
+    y - output
+    x - input
+    k - kernel
+    B - batch_size (number of images in x)
+    M - number of output feature maps
+    C - number of input feature maps
+    H - input height dimension
+    W - input width dimension
+    K - kernel height and width (K x K)
+    */
 
-// __global__ void unroll_MM_conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
-// {
-//     /*
-//     Modify this function to implement the forward pass described in Chapter 16.
-//     We have added an additional dimension to the tensors to support an entire mini-batch
-//     The goal here is to be correct AND fast.
+    const int H_out = H - K + 1;
+    const int W_out = W - K + 1;
 
-//     Function paramter definitions:
-//     y - output
-//     x - input
-//     k - kernel
-//     B - batch_size (number of images in x)
-//     M - number of output feature maps
-//     C - number of input feature maps
-//     H - input height dimension
-//     W - input width dimension
-//     K - kernel height and width (K x K)
-//     */
+    // (void)H_out; // silence declared but never referenced warning. remove this line when you start working
+    // (void)W_out; // silence declared but never referenced warning. remove this line when you start working
 
-//     const int H_out = H - K + 1;
-//     const int W_out = W - K + 1;
+    // We have some nice #defs for you below to simplify indexing. Feel free to use them, or create your own.
+    // An example use of these macros:
+    // float a = y4d(0,0,0,0)
+    // y4d(0,0,0,0) = a
 
-// }
+#define y4d(i3, i2, i1, i0) y[(i3) * (M * H_out * W_out) + (i2) * (H_out * W_out) + (i1) * (W_out) + i0]
+#define x4d(i3, i2, i1, i0) x[(i3) * (C * H * W) + (i2) * (H * W) + (i1) * (W) + i0]
+#define k4d(i3, i2, i1, i0) k[(i3) * (C * K * K) + (i2) * (K * K) + (i1) * (K) + i0]
+
+    // int H_grid = H_out / TILE_WIDTH;
+    int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
+    int i3 = blockIdx.x;
+    int i2 = blockIdx.y;
+    int i1 = (blockIdx.z / W_grid) * TILE_WIDTH + threadIdx.y;
+    int i0 = (blockIdx.z % W_grid) * TILE_WIDTH + threadIdx.x;
+
+    float outputY = 0.0;
+    if (i1 < H_out && i0 < W_out) 
+    {
+        #pragma unroll (16)
+        for (int c = 0; c < C; c++)
+        {
+            #pragma unroll (7)
+            for (int p = 0; p < K; p++)
+            {
+                #pragma unroll (7)
+                for (int q = 0; q < K; q++)
+                {
+                    outputY += x4d(i3, c, p + i1, q + i0) * k4d(i2, c, p, q);
+                }
+            }
+        }
+        y4d(i3, i2, i1, i0) = outputY;
+    }
+    
+
+#undef y4d
+#undef x4d
+#undef k4d
+}
 
 
 __host__ void GPUInterface::conv_forward_gpu_prolog(const float *host_y, const float *host_x, const float *host_k, float **device_y_ptr, float **device_x_ptr, float **device_k_ptr, const int B, const int M, const int C, const int H, const int W, const int K)
@@ -244,6 +344,22 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
     const int W_out = W - K + 1;
 
     switch(OPTIMIZATION) {
+        case 0: {
+            // Set the kernel dimensions and call the kernel
+            const int H_out = H - K + 1;
+            const int W_out = W - K + 1;
+
+            // parallel for outer-nested loop
+            int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
+            int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
+            int Z = H_grid * W_grid;
+            dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
+            dim3 gridDim(B, M, Z);
+
+            // call the kernel
+            baseline_conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
+        }
+        
         case 1: {
             // parallel for outer-nested loop
             int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
@@ -287,11 +403,30 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             }
             break;
         }
+        case 3: {
+            std::cout<<"Not Implemented!"<<std::endl;
+            break;
+        }
+        case 4: {
+            // Set the kernel dimensions and call the kernel
+            const int H_out = H - K + 1;
+            const int W_out = W - K + 1;
+
+            // parallel for outer-nested loop
+            int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
+            int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
+            int Z = H_grid * W_grid;
+            dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
+            dim3 gridDim(B, M, Z);
+
+            // call the kernel
+            loop_unroll_restrict_conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
+            break;
+        }
         default: {
             std::cout<<"Invalid Optimization Number!"<<std::endl;
             exit(-1);
         }
-
     }
 
 }
