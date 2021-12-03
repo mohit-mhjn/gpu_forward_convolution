@@ -157,7 +157,7 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
     int W_out = W - K + 1;
     int W_unroll = H_out*W_out;
 
-#define x3d(i3, i2, i1, i0) device_x[(i2) * (H * W) + (i1) * (W) + i0]
+#define x3d(i2, i1, i0) device_x[(i2) * (H * W) + (i1) * (W) + i0]
     
     if (t < C*W_unroll) {
 
