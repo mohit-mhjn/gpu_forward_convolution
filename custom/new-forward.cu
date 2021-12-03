@@ -222,18 +222,22 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
 
         int threadRow = t/unrolledWidth; // this row address of thread corresponds to a - c
         int threadCol = t%unrolledWidth; // Starting point is the same index in the X matrix
-        int row = threadCol/W_out;  // Starting Row Number in X
-        int col = threadCol%W_out;  // Starting Col Number in X
 
-        // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
-        int rowOffset = threadRow * K * K;
-        int current_unroll_index = rowOffset*unrolledWidth + threadCol;
+        if (threadRow < C && threadCol < unrolledWidth) {
 
-        for(int p = 0; p < K; p++) {
-            for(int q = 0; q < K; q++) {
-                if (row + p < H_out && col + q < W_out) {
-                    device_unrolled_x[current_unroll_index] = x3d(threadRow, row + p, col + q);
-                    current_unroll_index += unrolledWidth;
+            int row = threadCol/W_out;  // Starting Row Number in X
+            int col = threadCol%W_out;  // Starting Col Number in X
+
+            // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
+            int rowOffset = threadRow * K * K;
+            int current_unroll_index = rowOffset*unrolledWidth + threadCol;
+
+            for(int p = 0; p < K; p++) {
+                for(int q = 0; q < K; q++) {
+                    if (row + p < H_out && col + q < W_out) {
+                        device_unrolled_x[current_unroll_index] = x3d(threadRow, row + p, col + q);
+                        current_unroll_index += unrolledWidth;
+                    }
                 }
             }
         }
