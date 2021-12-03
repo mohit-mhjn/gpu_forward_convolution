@@ -168,7 +168,7 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
 
         // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
         int rowOffset = threadRow * K * K;
-        current_unroll_index = rowOffset*unrolledWidth + threadCol
+        int current_unroll_index = rowOffset*unrolledWidth + threadCol
 
         for(int p = 0; p < K; p++) {
             for(int q = 0; q < K; q++) {
@@ -280,7 +280,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
                 cudaDeviceSynchronize();
                 matrixMultiplyShared<<<gridDim, blockDim, 2*TILE_WIDTH*TILE_WIDTH>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
                                                 M, K*K*C, 
-                                                H_out*W_out, K*K*C,
+                                                K*K*C, H_out*W_out,
                                                 M, H_out*W_out);
                 cudaDeviceSynchronize();
             }
