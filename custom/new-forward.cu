@@ -149,8 +149,7 @@ __global__ void matrixMultiplyShared(const float *A, const float *B, float *C,
 
 }
 
-__global__ void unroll_kernel(const float * device_x, float * device_unrolled_x, const int C, const int H, const int W,
-                            const int K) {
+__global__ void unroll_kernel(const float * device_x, float * device_unrolled_x, const int C, const int H, const int W, const int K) {
     // each thread retrieve and generate k*k elements in the unrolled_x
     int t = blockIdx.x*blockDim.x + threadIdx.x;
     int H_out = H - K + 1;
@@ -163,17 +162,19 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
 
         int threadRow = t/unrolledWidth; // this row address of thread corresponds to a - c
         int threadCol = t%unrolledWidth; // Starting point is the same index in the X matrix
-        int row = threadCol/W_out;  // Row Number in X
-        int col = threadCol%W_out;  // Col Number in X
+        int row = threadCol/W_out;  // Starting Row Number in X
+        int col = threadCol%W_out;  // Starting Col Number in X
 
         // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
         int rowOffset = threadRow * K * K;
         int current_unroll_index = rowOffset*unrolledWidth + threadCol;
 
-        for(int p = 0; p < K; p++) {
-            for(int q = 0; q < K; q++) {
-                device_unrolled_x[current_unroll_index] = x3d(threadRow, row + p, col + q);
-                current_unroll_index += unrolledWidth;
+        if (row < H_out && col < W_out) {
+            for(int p = 0; p < K; p++) {
+                for(int q = 0; q < K; q++) {
+                    device_unrolled_x[current_unroll_index] = x3d(threadRow, row + p, col + q);
+                    current_unroll_index += unrolledWidth;
+                }
             }
         }
     }
@@ -278,17 +279,16 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             for (int n=0; n < B; n++) {
                 unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(&device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
                 cudaDeviceSynchronize();
-                matrixMultiplyShared<<<gridDim, blockDim, 2*TILE_WIDTH*TILE_WIDTH>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
+                matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
                                                 M, K*K*C,
                                                 K*K*C, H_out*W_out,
                                                 M, H_out*W_out);
                 cudaDeviceSynchronize();
             }
-            // unroll_MM_conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
             break;
         }
         default: {
-            std::cout<<"Invalid Optimization Nunber!"<<std::endl;
+            std::cout<<"Invalid Optimization Number!"<<std::endl;
             exit(-1);
         }
 
