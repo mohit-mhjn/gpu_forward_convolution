@@ -16,7 +16,7 @@ The meaning of each number is as indicated:
 
 ******************************************************************************************
 */
-#define OPTIMIZATION 1 // READ THE ABOVE DOCSTRING
+#define OPTIMIZATION 2 // READ THE ABOVE DOCSTRING
 // __constant__ // Implicit assumption that kernel dimension (K) < TILE WIDTH
 
 
@@ -252,6 +252,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
 
             // call the kernel
             tiled_conv_forward_kernel<<<gridDim, blockDim, sharedSize>>>(device_y, device_x, device_k, B, M, C, H, W, K);
+            cudaDeviceSynchronize();
             break;
         }
         
@@ -274,8 +275,10 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
             for (int n=0; n < B; n++) {
                 unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(&device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
+                cudaDeviceSynchronize();
                 matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
                                                 M, K*K*C, K*K*C, H_out*W_out, M, H_out*W_out);
+                cudaDeviceSynchronize();
             }
             // unroll_MM_conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
             break;
