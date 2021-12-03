@@ -16,7 +16,7 @@ The meaning of each number is as indicated:
 
 ******************************************************************************************
 */
-#define OPTIMIZATION 2 // READ THE ABOVE DOCSTRING
+#define OPTIMIZATION 1 // READ THE ABOVE DOCSTRING
 // __constant__ // Implicit assumption that kernel dimension (K) < TILE WIDTH
 
 
@@ -179,29 +179,29 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
 }
 
 
-__global__ void unroll_MM_conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
-{
-    /*
-    Modify this function to implement the forward pass described in Chapter 16.
-    We have added an additional dimension to the tensors to support an entire mini-batch
-    The goal here is to be correct AND fast.
+// __global__ void unroll_MM_conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
+// {
+//     /*
+//     Modify this function to implement the forward pass described in Chapter 16.
+//     We have added an additional dimension to the tensors to support an entire mini-batch
+//     The goal here is to be correct AND fast.
 
-    Function paramter definitions:
-    y - output
-    x - input
-    k - kernel
-    B - batch_size (number of images in x)
-    M - number of output feature maps
-    C - number of input feature maps
-    H - input height dimension
-    W - input width dimension
-    K - kernel height and width (K x K)
-    */
+//     Function paramter definitions:
+//     y - output
+//     x - input
+//     k - kernel
+//     B - batch_size (number of images in x)
+//     M - number of output feature maps
+//     C - number of input feature maps
+//     H - input height dimension
+//     W - input width dimension
+//     K - kernel height and width (K x K)
+//     */
 
-    const int H_out = H - K + 1;
-    const int W_out = W - K + 1;
+//     const int H_out = H - K + 1;
+//     const int W_out = W - K + 1;
 
-}
+// }
 
 
 __host__ void GPUInterface::conv_forward_gpu_prolog(const float *host_y, const float *host_x, const float *host_k, float **device_y_ptr, float **device_x_ptr, float **device_k_ptr, const int B, const int M, const int C, const int H, const int W, const int K)
