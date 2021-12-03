@@ -171,6 +171,24 @@ __global__ void tiled_conv_forward_kernel(float *y, const float *x, const float 
 #undef k4d
 }
 
+template<typename T>
+__global__
+void naive_matrix_multiply(const T *A, const T *B, T* C, int width, int P, int Q)
+{
+  int r = blockIdx.y * blockDim.y + threadIdx.y;   
+  int c = blockIdx.x * blockDim.x + threadIdx.x;
+  // check boundry conditions
+  if( r < P && c < Q){
+    // do the multiplication for one row and col
+    T value = 0;
+    for(int k = 0; k < width; k++){
+      value += A[r * width + k] * B[k * Q + c];
+    }
+    // store the result
+    C[r * Q + c] = value;
+  }
+}
+
 
 __global__ void matrixMultiplyShared(const float *A, const float *B, float *C,
                                     int numARows, int numAColumns,
@@ -222,18 +240,16 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
 
         int threadRow = t/unrolledWidth; // this row address of thread corresponds to a - c
         int threadCol = t%unrolledWidth; // Starting point is the same index in the X matrix
-        int row = threadCol/W;  // Starting Row Number in X
-        int col = threadCol%W;  // Starting Col Number in X
+        int row = threadCol/W_out;  // Starting Row Number in X
+        int col = threadCol%W_out;  // Starting Col Number in X 
 
-        if (row < H_out && col < W_out) {
-            // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
-            int rowOffset = threadRow * K * K;
-            int current_unroll_index = rowOffset*unrolledWidth + threadCol;
-            for(int p = 0; p < K; p++) {
-                for(int q = 0; q < K; q++) {
-                    device_unrolled_x[current_unroll_index] = x3d(threadRow, row + p, col + q);
-                    current_unroll_index += unrolledWidth;
-                }
+        // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
+        int rowOffset = threadRow * K * K;
+        int current_unroll_index = rowOffset*unrolledWidth + threadCol;
+        for(int p = 0; p < K; p++) {
+            for(int q = 0; q < K; q++) {
+                device_unrolled_x[current_unroll_index] = x3d(threadRow, row + p, col + q);
+                current_unroll_index += unrolledWidth;
             }
         }
     }
@@ -394,10 +410,11 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             for (int n=0; n < B; n++) {
                 unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(&device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
                 cudaDeviceSynchronize();
-                matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
-                                                M, K*K*C,
-                                                K*K*C, H_out*W_out,
-                                                M, H_out*W_out);
+                // matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
+                //                                 M, K*K*C,
+                //                                 K*K*C, H_out*W_out,
+                //                                 M, H_out*W_out);
+                naive_matrix_multiply(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], K*K*C, M, H_out*W_out);
                 cudaDeviceSynchronize();
             }
             break;
