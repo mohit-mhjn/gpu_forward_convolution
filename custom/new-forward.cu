@@ -241,7 +241,7 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
 #undef x3d
 }
 
-__global__ void loop_unroll_restrict_conv_forward_kernel(float __restrict *y, const __restrict float *x, const  float __restrict *k, const int B, const int M, const int C, const int H, const int W, const int K)
+__global__ void loop_unroll_restrict_conv_forward_kernel(float * __restrict y, const float * __restrict x, const float * __restrict k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     /*
     Modify this function to implement the forward pass described in Chapter 16.
