@@ -260,8 +260,8 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
         
         case 2: {
             // 1. Setup unroll kernel and perform unrolling
-            //  1.1 W - already unrolled
-            //  1.2 Y - already unrolled
+            //  1.1 W - already unrolled from input side 
+            //  1.2 Y - already unrolled from input side
 
             //  1.3 Allocate Memory for unrolled X
             float * device_unrolled_x;
