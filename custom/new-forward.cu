@@ -276,7 +276,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             for (int n=0; n < B; n++) {
                 unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(&device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
                 cudaDeviceSynchronize();
-                matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
+                matrixMultiplyShared<<<gridDim, blockDim, 2*TILE_WIDTH*TILE_WIDTH>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
                                                 M, K*K*C, K*K*C, H_out*W_out, M, H_out*W_out);
                 cudaDeviceSynchronize();
             }
