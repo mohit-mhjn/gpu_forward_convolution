@@ -175,7 +175,7 @@ template<typename T>
 __global__
 void naive_matrix_multiply(const T *A, const T *B, T* C, int width, int P, int Q)
 {
-  int r = blockIdx.y * blockDim.y + threadIdx.y;   
+  int r = blockIdx.y * blockDim.y + threadIdx.y;
   int c = blockIdx.x * blockDim.x + threadIdx.x;
   // check boundry conditions
   if( r < P && c < Q){
@@ -241,7 +241,7 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
         int threadRow = t/unrolledWidth; // this row address of thread corresponds - c
         int threadCol = t%unrolledWidth; // Starting point is the same index in the X matrix
         int row = threadCol/W_out;  // Starting Row Number in X
-        int col = threadCol%W_out;  // Starting Col Number in X 
+        int col = threadCol%W_out;  // Starting Col Number in X
 
         // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
         int rowOffset = threadRow * K * K;
@@ -414,7 +414,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
                 //                                 M, K*K*C,
                 //                                 K*K*C, H_out*W_out,
                 //                                 M, H_out*W_out);
-                naive_matrix_multiply(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], K*K*C, M, H_out*W_out);
+                naive_matrix_multiply<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], K*K*C, M, H_out*W_out);
                 cudaDeviceSynchronize();
             }
             break;
