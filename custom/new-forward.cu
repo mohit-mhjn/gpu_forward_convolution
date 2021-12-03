@@ -266,15 +266,15 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             cudaMalloc((void**)&device_unrolled_x, size_of_unrolled_x);
 
             // 2. Call the unrolling kernel for each sample image in the batch in a loop
-            int CUDA_MAX_NUM_THREADS;
-            cudaDeviceGetAttribute(&CUDA_MAX_NUM_THREADS, cudaDevAttrMaxThreadsPerBlock);
+            int CUDA_MAX_NUM_THREADS = 1024;
+            // cudaDeviceGetAttribute(&CUDA_MAX_NUM_THREADS, cudaDevAttrMaxThreadsPerBlock);
             int num_threads_unroll = C*H_out*W_out;
             int num_blocks_unroll = ceil(1.0*(num_threads_unroll)/CUDA_MAX_NUM_THREADS);
             dim3 gridDim(ceil(1.0*H_out*W_out/TILE_WIDTH), ceil(1.0*M/TILE_WIDTH), 1);
             dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
             for (int n=0; n < B; n++) {
-                unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
-                matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, device_y[n*(M*H_out*W_out)],
+                unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(&device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
+                matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
                                                 M, K*K*C, K*K*C, H_out*W_out, M, H_out*W_out);
             }
             // unroll_MM_conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
