@@ -62,7 +62,7 @@ __global__ void baseline_conv_forward_kernel(float *y, const float *x, const flo
     int i0 = (blockIdx.z % W_grid) * TILE_WIDTH + threadIdx.x;
 
     float outputY = 0.0;
-    if (i1 < H_out && i0 < W_out) 
+    if (i1 < H_out && i0 < W_out)
     {
         for (int c = 0; c < C; c++)
         {
@@ -76,7 +76,7 @@ __global__ void baseline_conv_forward_kernel(float *y, const float *x, const flo
         }
         y4d(i3, i2, i1, i0) = outputY;
     }
-    
+
 
 #undef y4d
 #undef x4d
@@ -228,7 +228,7 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
         // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
         int rowOffset = threadRow * K * K;
         int current_unroll_index = rowOffset*unrolledWidth + threadCol;
-            
+
         for(int p = 0; p < K; p++) {
             for(int q = 0; q < K; q++) {
                 if (row + p < H_out && col + q < W_out) {
@@ -282,7 +282,7 @@ __global__ void loop_unroll_restrict_conv_forward_kernel(float * __restrict y, c
     int i0 = (blockIdx.z % W_grid) * TILE_WIDTH + threadIdx.x;
 
     float outputY = 0.0;
-    if (i1 < H_out && i0 < W_out) 
+    if (i1 < H_out && i0 < W_out)
     {
         #pragma unroll (16)
         for (int c = 0; c < C; c++)
@@ -299,7 +299,7 @@ __global__ void loop_unroll_restrict_conv_forward_kernel(float * __restrict y, c
         }
         y4d(i3, i2, i1, i0) = outputY;
     }
-    
+
 
 #undef y4d
 #undef x4d
@@ -359,7 +359,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             // call the kernel
             baseline_conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
         }
-        
+
         case 1: {
             // parallel for outer-nested loop
             int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
@@ -377,7 +377,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
 
         case 2: {
             // 1. Setup unroll kernel and perform unrolling
-            //  1.1 W - already unrolled from input side 
+            //  1.1 W - already unrolled from input side
             //  1.2 Y - already unrolled from input side
 
             //  1.3 Allocate Memory for unrolled X
