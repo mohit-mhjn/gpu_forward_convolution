@@ -155,25 +155,25 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
     int t = blockIdx.x*blockDim.x + threadIdx.x;
     int H_out = H - K + 1;
     int W_out = W - K + 1;
-    int W_unroll = H_out*W_out;
+    int unrolledWidth = (H_out*W_out);
 
 #define x3d(i2, i1, i0) device_x[(i2) * (H * W) + (i1) * (W) + i0]
     
-    if (t < C*W_unroll) {
+    if (t < C*H_out*W_out) {
 
-        int c = t/W_unroll;
-        int s = t%W_unroll;
-        int h = s/W_out;
-        int w = s%W_out;
-        int h_u = h * W_out + w;
-        int w_base = c * K * K;
-        
+        int threadRow = t/unrolledWidth; // this row address of thread corresponds to a - c
+        int threadCol = t%unrolledWidth; // Starting point is the same index in the X matrix
+        int row = s/W_out;  // Row Number in X
+        int col = s%W_out;  // Col Number in X
+
+        // Thread will write data in the same col but rows shall offset by K*K (starting point = c*K*K) and increment by H_out x W_out
+        int rowOffset = threadRow * K * K;
+        current_unroll_index = rowOffset*unrolledWidth + threadCol
+
         for(int p = 0; p < K; p++) {
             for(int q = 0; q < K; q++) {
-                if (h+p < H && w+q < W) {
-                    int w_u = w_base + p * K + q; 
-                    device_unrolled_x[h_u * W_unroll + w_u] = x3d(c, h + p, w + q);
-                }
+                device_unrolled_x[current_unroll_index] = x3d(threadRow, row + p, col + q);
+                current_unroll_index += unrolledWidth;
             }
         }
     }
