@@ -171,16 +171,14 @@ __global__ void tiled_conv_forward_kernel(float *y, const float *x, const float 
 #undef k4d
 }
 
-template<typename T>
-__global__
-void naive_matrix_multiply(const T *A, const T *B, T* C, int width, int P, int Q)
+__global__ void naive_matrix_multiply(const float * A, const float * B, float * C, int width, int P, int Q)
 {
   int r = blockIdx.y * blockDim.y + threadIdx.y;
   int c = blockIdx.x * blockDim.x + threadIdx.x;
   // check boundry conditions
-  if( r < P && c < Q){
+  if(r < P && c < Q){
     // do the multiplication for one row and col
-    T value = 0;
+    float value = 0.0;
     for(int k = 0; k < width; k++){
       value += A[r * width + k] * B[k * Q + c];
     }
@@ -190,41 +188,44 @@ void naive_matrix_multiply(const T *A, const T *B, T* C, int width, int P, int Q
 }
 
 
-__global__ void matrixMultiplyShared(const float *A, const float *B, float *C,
-                                    int numARows, int numAColumns,
-                                    int numBRows, int numBColumns,
-                                    int numCRows, int numCColumns) {
-  //@@ Insert code to implement matrix multiplication here
-  //@@ You have to use shared memory for this MP
-  __shared__ float A_ds[TILE_WIDTH][TILE_WIDTH];
-  __shared__ float B_ds[TILE_WIDTH][TILE_WIDTH];
+__global__ void matrixMultiplyShared(const float * a, const float * b, float * c, int a_rows, int a_columns, int b_columns)
+{
+	//declare shared memory matrices for A and B matrices
+	__shared__ float shared_a_tile[TILE_WIDTH][TILE_WIDTH];
+	__shared__ float shared_b_tile[TILE_WIDTH][TILE_WIDTH];
 
-  int Row = blockIdx.y*TILE_WIDTH + threadIdx.y;
-  int Col = blockIdx.x*TILE_WIDTH + threadIdx.x;
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if (Row < numCRows && Col < numCColumns) {
+	//check if thread directly maps to the dimensions of the resulting matrix
+	if (row < a_rows && col < b_columns)
+	{
+		float result = 0.0;
+		int k;
+		int phase;
 
-    // Looping over tiles in A and B
-    float pValue = 0;
-    for (int i=0; i < ceil(1.0*numAColumns/TILE_WIDTH); i++) {
+		//calculate C matrix indexes in phases. Each phase shares
+		//TILE_WIDTH * TILE_WIDTH data copied to the shared matrix A
+		//and matrix B.
+		for (phase = 0; phase <= a_columns/TILE_WIDTH; phase++)
+		{
+			shared_a_tile[ty][tx] = a[row * a_columns + phase * TILE_WIDTH + tx];
+			shared_b_tile[ty][tx] = b[(phase * TILE_WIDTH + ty) * b_columns + col];
+			__syncthreads();
 
-      if (TILE_WIDTH*i+threadIdx.x < numAColumns){
-        A_ds[threadIdx.y][threadIdx.x] = A[Row*numAColumns+ TILE_WIDTH*i + threadIdx.x];
-      }
-      if (TILE_WIDTH*i + threadIdx.y < numBRows) {
-        B_ds[threadIdx.y][threadIdx.x] = B[(TILE_WIDTH*i + threadIdx.y)*numBColumns + Col];
-      }
-
-      __syncthreads();
-
-      for (int k = 0; k < TILE_WIDTH; k++) {
-        pValue += A_ds[threadIdx.y][k] * B_ds[k][threadIdx.x];
-      }
-
-      __syncthreads();
-    }
-    C[Row*numCColumns + Col] = pValue;
-  }
+			for (k = 0; k < TILE_WIDTH; k++)
+			{
+				if (k + (phase * TILE_WIDTH) < a_columns)
+				{
+					result += (shared_a_tile[ty][k] * shared_b_tile[k][tx]);
+				}
+			}
+			__syncthreads();
+		}
+		c[row * b_columns + col] = result;
+	}
 }
 
 __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x, const int C, const int H, const int W, const int K) {
@@ -410,11 +411,8 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             for (int n=0; n < B; n++) {
                 unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(&device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
                 cudaDeviceSynchronize();
-                // matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)],
-                //                                 M, K*K*C,
-                //                                 K*K*C, H_out*W_out,
-                //                                 M, H_out*W_out);
-                naive_matrix_multiply<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], K*K*C, M, H_out*W_out);
+                matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], M, K*K*C, H_out*W_out);
+                // naive_matrix_multiply<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], K*K*C, M, H_out*W_out);
                 cudaDeviceSynchronize();
             }
             break;
