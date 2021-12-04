@@ -22,5 +22,5 @@ commands:
       # - /bin/bash -c "time ./m2 10000"
       # - /bin/bash -c "cuda-memcheck ./m2"
       # - /bin/bash -c "nsys profile --stats=true ./m2 10000"
-      # - /bin/bash -c "nv-nsight-cu-cli --section '.*' -o M2-analysis_file ./m2" 
+      # - /bin/bash -c "nv-nsight-cu-cli --section '.*' -o M2-analysis_file ./m2"
       - /bin/bash -c "./m3 100"
