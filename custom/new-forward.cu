@@ -3,7 +3,7 @@
 #include "gpu-new-forward.h"
 
 // Parameters and Declarations
-#define TILE_WIDTH 32 // tiling consideration
+#define TILE_WIDTH 2 // tiling consideration
 
 /*
 ******************************************************************************************
@@ -12,7 +12,7 @@ The meaning of each number is as indicated:
 
 0 - baseline (MP2)
 1 - Tiled shared memory convolution
-2 - Shared memory matrix multiplication and input matrix unrolling
+2 - Shared memory matrix multiplication and input matrix unrolling - recommended tile size = 4
 3 - Kernel fusion for unrolling and matrix-multiplication (requires previous optimization)
 4 - Tuning with restrict and loop unrolling
 
@@ -188,44 +188,40 @@ __global__ void naive_matrix_multiply(const float * A, const float * B, float * 
 }
 
 
-__global__ void matrixMultiplyShared(const float * a, const float * b, float * c, int a_rows, int a_columns, int b_columns)
-{
-	//declare shared memory matrices for A and B matrices
-	__shared__ float shared_a_tile[TILE_WIDTH][TILE_WIDTH];
-	__shared__ float shared_b_tile[TILE_WIDTH][TILE_WIDTH];
+__global__ void matrixMultiplyShared(const float * A, const float * B, float * C,
+                                     int numARows, int numAColumns,
+                                     int numBRows, int numBColumns,
+                                     int numCRows, int numCColumns) {
 
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
-	int col = blockIdx.x * blockDim.x + threadIdx.x;
-	int row = blockIdx.y * blockDim.y + threadIdx.y;
+  //@@ Insert code to implement matrix multiplication here
+  //@@ You have to use shared memory for this MP
+  __shared__ float A_ds[TILE_WIDTH][TILE_WIDTH];
+  __shared__ float B_ds[TILE_WIDTH][TILE_WIDTH];
 
-	//check if thread directly maps to the dimensions of the resulting matrix
-	if (row < a_rows && col < b_columns)
-	{
-		float result = 0.0;
-		int k;
-		int phase;
+  int Row = blockIdx.y*TILE_WIDTH + threadIdx.y;
+  int Col = blockIdx.x*TILE_WIDTH + threadIdx.x;
 
-		//calculate C matrix indexes in phases. Each phase shares
-		//TILE_WIDTH * TILE_WIDTH data copied to the shared matrix A
-		//and matrix B.
-		for (phase = 0; phase <= a_columns/TILE_WIDTH; phase++)
-		{
-			shared_a_tile[ty][tx] = a[row * a_columns + phase * TILE_WIDTH + tx];
-			shared_b_tile[ty][tx] = b[(phase * TILE_WIDTH + ty) * b_columns + col];
-			__syncthreads();
+  if (Row < numCRows && Col < numCColumns) {
 
-			for (k = 0; k < TILE_WIDTH; k++)
-			{
-				if (k + (phase * TILE_WIDTH) < a_columns)
-				{
-					result += (shared_a_tile[ty][k] * shared_b_tile[k][tx]);
-				}
-			}
-			__syncthreads();
-		}
-		c[row * b_columns + col] = result;
-	}
+    // Looping over tiles in A and B
+    float pValue = 0.0;
+    for (int i=0; i < ceil(1.0*numAColumns/TILE_WIDTH); i++) {
+
+      if (TILE_WIDTH*i+threadIdx.x < numAColumns){
+        A_ds[threadIdx.y][threadIdx.x] = A[Row*numAColumns+ TILE_WIDTH*i + threadIdx.x];
+      }
+      if (TILE_WIDTH*i + threadIdx.y < numBRows) {
+        B_ds[threadIdx.y][threadIdx.x] = B[(TILE_WIDTH*i + threadIdx.y)*numBColumns + Col];
+      }
+      __syncthreads();
+
+      for (int k = 0; k < TILE_WIDTH; k++) {
+        pValue += A_ds[threadIdx.y][k] * B_ds[k][threadIdx.x];
+      }
+      __syncthreads();
+    }
+    C[Row*numCColumns + Col] = pValue;
+  }
 }
 
 __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x, const int C, const int H, const int W, const int K) {
@@ -355,15 +351,13 @@ __host__ void GPUInterface::conv_forward_gpu_prolog(const float *host_y, const f
 
 __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *device_x, const float *device_k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
+
     // Set the kernel dimensions and call the kernel
     const int H_out = H - K + 1;
     const int W_out = W - K + 1;
 
     switch(OPTIMIZATION) {
         case 0: {
-            // Set the kernel dimensions and call the kernel
-            const int H_out = H - K + 1;
-            const int W_out = W - K + 1;
 
             // parallel for outer-nested loop
             int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
@@ -377,7 +371,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
         }
 
         case 1: {
-            // parallel for outer-nested loop
+
             int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
             int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
             int Z = H_grid * W_grid;
@@ -389,6 +383,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             tiled_conv_forward_kernel<<<gridDim, blockDim, sharedSize>>>(device_y, device_x, device_k, B, M, C, H, W, K);
             cudaDeviceSynchronize();
             break;
+
         }
 
         case 2: {
@@ -398,33 +393,35 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
 
             //  1.3 Allocate Memory for unrolled X
             float * device_unrolled_x;
-            int size_of_unrolled_x = C * H_out * W_out * K * K;
-            cudaMalloc((void**)&device_unrolled_x, size_of_unrolled_x);
+            int size_of_unrolled_x = C * K * K * H_out * W_out;
+            cudaMalloc((void**)&device_unrolled_x, sizeof(float) * size_of_unrolled_x);
 
             // 2. Call the unrolling kernel for each sample image in the batch in a loop
             int CUDA_MAX_NUM_THREADS = 1024;
             // cudaDeviceGetAttribute(&CUDA_MAX_NUM_THREADS, cudaDevAttrMaxThreadsPerBlock);
             int num_threads_unroll = C*H_out*W_out;
             int num_blocks_unroll = ceil(1.0*(num_threads_unroll)/CUDA_MAX_NUM_THREADS);
+
             dim3 gridDim(ceil(1.0*H_out*W_out/TILE_WIDTH), ceil(1.0*M/TILE_WIDTH), 1);
             dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
+
+            size_t sharedSize = sizeof(float)*(TILE_WIDTH*TILE_WIDTH*2);
+
             for (int n=0; n < B; n++) {
                 unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(&device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
                 cudaDeviceSynchronize();
-                matrixMultiplyShared<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], M, K*K*C, H_out*W_out);
-                // naive_matrix_multiply<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], K*K*C, M, H_out*W_out);
+                matrixMultiplyShared<<<gridDim, blockDim, sharedSize>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], M, K*K*C, K*K*C, H_out*W_out, M, H_out*W_out);
+                //naive_matrix_multiply<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], K*K*C, M, H_out*W_out);
                 cudaDeviceSynchronize();
             }
             break;
         }
+
         case 3: {
             std::cout<<"Not Implemented!"<<std::endl;
             break;
         }
         case 4: {
-            // Set the kernel dimensions and call the kernel
-            const int H_out = H - K + 1;
-            const int W_out = W - K + 1;
 
             // parallel for outer-nested loop
             int H_grid = ceil(1.0 * H_out / TILE_WIDTH);
@@ -435,6 +432,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
 
             // call the kernel
             loop_unroll_restrict_conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
+
             break;
         }
         default: {
