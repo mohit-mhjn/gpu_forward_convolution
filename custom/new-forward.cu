@@ -11,15 +11,22 @@ OPTIMIZATION - Select an optimization number to execute forward convolution
 The meaning of each number is as indicated:
 
 0 - baseline (MP2)
-1 - Tiled shared memory convolution
-2 - Shared memory matrix multiplication and input matrix unrolling - recommended tile size = 4
-3 - Kernel fusion for unrolling and matrix-multiplication (requires previous optimization)
-4 - Tuning with restrict and loop unrolling
 
+- NOTE: All the following optimizations load the M*K*K kernels from the GPU constant memory (RUBRIC: 1)
+
+1 - Tiled shared memory convolution (RUBRIC: 2)
+2 - Shared memory matrix multiplication and input matrix unrolling (RUBRIC: 3) 
+        RECOMMENDED TILE_WIDTH = 2 (change above)
+3 - Kernel fusion for unrolling and matrix-multiplication (requires previous optimization) (RUBRIC: 2)
+4 - Tuning with restrict and loop unrolling (RUBRIC: 3)
+5 - 
 ******************************************************************************************
 */
 #define OPTIMIZATION 2 // READ THE ABOVE DOCSTRING
-// __constant__ // Implicit assumption that kernel dimension (K) < TILE WIDTH
+
+// Declare constant memory for storing the kernel
+// Implicit assumption that kernel dimension (K) < TILE WIDTH
+__constant__ float device_constant_k[16*7*7];
 
 __global__ void baseline_conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
 {
@@ -83,7 +90,7 @@ __global__ void baseline_conv_forward_kernel(float *y, const float *x, const flo
 #undef k4d
 }
 
-__global__ void tiled_conv_forward_kernel(float *y, const float *x, const float *k, const int B, const int M, const int C, const int H, const int W, const int K)
+__global__ void tiled_conv_forward_kernel(float *y, const float *x, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     /*
     Modify this function to implement the forward pass described in Chapter 16.
@@ -115,7 +122,7 @@ __global__ void tiled_conv_forward_kernel(float *y, const float *x, const float 
 
 #define y4d(i3, i2, i1, i0) y[(i3) * (M * H_out * W_out) + (i2) * (H_out * W_out) + (i1) * (W_out) + i0]
 #define x4d(i3, i2, i1, i0) x[(i3) * (C * H * W) + (i2) * (H * W) + (i1) * (W) + i0]
-#define k4d(i3, i2, i1, i0) k[(i3) * (C * K * K) + (i2) * (K * K) + (i1) * (K) + i0]
+#define k4d(i3, i2, i1, i0) device_constant_k[(i3) * (C * K * K) + (i2) * (K * K) + (i1) * (K) + i0]
 
     // int H_grid = H_out / TILE_WIDTH;
     int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
@@ -171,7 +178,7 @@ __global__ void tiled_conv_forward_kernel(float *y, const float *x, const float 
 #undef k4d
 }
 
-__global__ void naive_matrix_multiply(const float * A, const float * B, float * C, int width, int P, int Q)
+__global__ void naive_matrix_multiply(const float * B, float * C, int width, int P, int Q)
 {
   int r = blockIdx.y * blockDim.y + threadIdx.y;
   int c = blockIdx.x * blockDim.x + threadIdx.x;
@@ -180,7 +187,7 @@ __global__ void naive_matrix_multiply(const float * A, const float * B, float * 
     // do the multiplication for one row and col
     float value = 0.0;
     for(int k = 0; k < width; k++){
-      value += A[r * width + k] * B[k * Q + c];
+      value += device_constant_k[r * width + k] * B[k * Q + c];
     }
     // store the result
     C[r * Q + c] = value;
@@ -188,7 +195,7 @@ __global__ void naive_matrix_multiply(const float * A, const float * B, float * 
 }
 
 
-__global__ void matrixMultiplyShared(const float * A, const float * B, float * C,
+__global__ void matrixMultiplyShared(const float * B, float * C,
                                      int numARows, int numAColumns,
                                      int numBRows, int numBColumns,
                                      int numCRows, int numCColumns) {
@@ -208,7 +215,7 @@ __global__ void matrixMultiplyShared(const float * A, const float * B, float * C
     for (int i=0; i < ceil(1.0*numAColumns/TILE_WIDTH); i++) {
 
       if (TILE_WIDTH*i+threadIdx.x < numAColumns){
-        A_ds[threadIdx.y][threadIdx.x] = A[Row*numAColumns+ TILE_WIDTH*i + threadIdx.x];
+        A_ds[threadIdx.y][threadIdx.x] = device_constant_k[Row*numAColumns+ TILE_WIDTH*i + threadIdx.x];
       }
       if (TILE_WIDTH*i + threadIdx.y < numBRows) {
         B_ds[threadIdx.y][threadIdx.x] = B[(TILE_WIDTH*i + threadIdx.y)*numBColumns + Col];
@@ -253,7 +260,7 @@ __global__ void unroll_kernel(const float * device_x, float * device_unrolled_x,
 #undef x3d
 }
 
-__global__ void loop_unroll_restrict_conv_forward_kernel(float * __restrict y, const float * __restrict x, const float * __restrict k, const int B, const int M, const int C, const int H, const int W, const int K)
+__global__ void loop_unroll_restrict_conv_forward_kernel(float * __restrict y, const float * __restrict x, const int B, const int M, const int C, const int H, const int W, const int K)
 {
     /*
     Modify this function to implement the forward pass described in Chapter 16.
@@ -284,7 +291,7 @@ __global__ void loop_unroll_restrict_conv_forward_kernel(float * __restrict y, c
 
 #define y4d(i3, i2, i1, i0) y[(i3) * (M * H_out * W_out) + (i2) * (H_out * W_out) + (i1) * (W_out) + i0]
 #define x4d(i3, i2, i1, i0) x[(i3) * (C * H * W) + (i2) * (H * W) + (i1) * (W) + i0]
-#define k4d(i3, i2, i1, i0) k[(i3) * (C * K * K) + (i2) * (K * K) + (i1) * (K) + i0]
+#define k4d(i3, i2, i1, i0) device_constant_k[(i3) * (C * K * K) + (i2) * (K * K) + (i1) * (K) + i0]
 
     // int H_grid = H_out / TILE_WIDTH;
     int W_grid = ceil(1.0 * W_out / TILE_WIDTH);
@@ -338,8 +345,15 @@ __host__ void GPUInterface::conv_forward_gpu_prolog(const float *host_y, const f
     // We pass double pointers for you to initialize the relevant device pointers,
     //  which are passed to the other two functions.
     cudaMemcpy(*device_x_ptr, host_x, size_of_x * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(*device_k_ptr, host_k, size_of_k * sizeof(float), cudaMemcpyHostToDevice);
-
+    
+    // Avoiding unnecessary cuda-memcpy
+    if (OPTIMIZATION == 0){
+        cudaMemcpy(*device_k_ptr, host_k, size_of_k * sizeof(float), cudaMemcpyHostToDevice);
+    }
+    else {
+        cudaMemcpyToSymbol(device_constant_k, host_k, 16*7*7*sizeof(float), 0, cudaMemcpyHostToDevice);
+    }
+        cudaDeviceSynchronize();
     // Useful snippet for error checking
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess)
@@ -378,9 +392,11 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
             dim3 gridDim(B, M, Z);
             size_t sharedSize = sizeof(float)*((TILE_WIDTH+K-1)*(TILE_WIDTH+K-1) + K*K);
+            
+            // Kernel has been transferred to constant memory in prologue 
 
             // call the kernel
-            tiled_conv_forward_kernel<<<gridDim, blockDim, sharedSize>>>(device_y, device_x, device_k, B, M, C, H, W, K);
+            tiled_conv_forward_kernel<<<gridDim, blockDim, sharedSize>>>(device_y, device_x, B, M, C, H, W, K);
             cudaDeviceSynchronize();
             break;
 
@@ -390,6 +406,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             // 1. Setup unroll kernel and perform unrolling
             //  1.1 W - already unrolled from input side
             //  1.2 Y - already unrolled from input side
+            //  1.3 Kernel has been transferred to constant memory in prologue   
 
             //  1.3 Allocate Memory for unrolled X
             float * device_unrolled_x;
@@ -410,7 +427,7 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             for (int n=0; n < B; n++) {
                 unroll_kernel<<<num_blocks_unroll, CUDA_MAX_NUM_THREADS>>>(&device_x[n*(C * H * W)], device_unrolled_x, C, H, W, K);
                 cudaDeviceSynchronize();
-                matrixMultiplyShared<<<gridDim, blockDim, sharedSize>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], M, K*K*C, K*K*C, H_out*W_out, M, H_out*W_out);
+                matrixMultiplyShared<<<gridDim, blockDim, sharedSize>>>(device_unrolled_x, &device_y[n*(M*H_out*W_out)], M, K*K*C, K*K*C, H_out*W_out, M, H_out*W_out);
                 //naive_matrix_multiply<<<gridDim, blockDim>>>(device_k, device_unrolled_x, &device_y[n*(M*H_out*W_out)], K*K*C, M, H_out*W_out);
                 cudaDeviceSynchronize();
             }
@@ -429,10 +446,9 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             int Z = H_grid * W_grid;
             dim3 blockDim(TILE_WIDTH, TILE_WIDTH, 1);
             dim3 gridDim(B, M, Z);
-
+            // Kernel has been transferred to constant memory in prologue
             // call the kernel
             loop_unroll_restrict_conv_forward_kernel<<<gridDim, blockDim>>>(device_y, device_x, device_k, B, M, C, H, W, K);
-
             break;
         }
         default: {
@@ -440,7 +456,6 @@ __host__ void GPUInterface::conv_forward_gpu(float *device_y, const float *devic
             exit(-1);
         }
     }
-
 }
 
 __host__ void GPUInterface::conv_forward_gpu_epilog(float *host_y, float *device_y, float *device_x, float *device_k, const int B, const int M, const int C, const int H, const int W, const int K)
