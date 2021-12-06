@@ -1,0 +1,359 @@
+Dynamic Rate Limit: 3m0s
+✱ Checking your authentication credentials.
+✱ Preparing your project directory for upload.
+✱ Uploading your project directory. This may take a few minutes.
+ 1.57 MiB / 1.57 MiB  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  100.00% 6.48 MiB/s 0s
+✱ Folder uploaded. Server is now processing your submission.
+✱ Your job request has been posted to the queue.
+✱ Server has accepted your job submission and started to configure the container.
+✱ Downloading your code.
+✱ Using jnativ/ece408_minidnn_docker_sp21:latest as container image.
+✱ Starting container.
+✱ Running /bin/bash -c "mkdir /build/student_code && cp -rv /src/* /build/student_code"
+'/src/M2-memcheck.output' -> '/build/student_code/M2-memcheck.output'
+'/src/M2-nsysProfile.output' -> '/build/student_code/M2-nsysProfile.output'
+'/src/M2-nv-nsight-cu-cli.output' -> '/build/student_code/M2-nv-nsight-cu-cli.output'
+'/src/custom' -> '/build/student_code/custom'
+'/src/custom/cpu-new-forward.cc' -> '/build/student_code/custom/cpu-new-forward.cc'
+'/src/custom/cpu-new-forward.h' -> '/build/student_code/custom/cpu-new-forward.h'
+'/src/custom/gpu-new-forward.h' -> '/build/student_code/custom/gpu-new-forward.h'
+'/src/custom/new-forward.cu' -> '/build/student_code/custom/new-forward.cu'
+'/src/m1.cc' -> '/build/student_code/m1.cc'
+'/src/m1_report.pdf' -> '/build/student_code/m1_report.pdf'
+'/src/m1_report_template.docx' -> '/build/student_code/m1_report_template.docx'
+'/src/m2.cc' -> '/build/student_code/m2.cc'
+'/src/m2_report.pdf' -> '/build/student_code/m2_report.pdf'
+'/src/m2_report_template.docx' -> '/build/student_code/m2_report_template.docx'
+'/src/m3.cc' -> '/build/student_code/m3.cc'
+'/src/m3_report_template.docx' -> '/build/student_code/m3_report_template.docx'
+'/src/rai_build.yml' -> '/build/student_code/rai_build.yml'
+'/src/readme.md' -> '/build/student_code/readme.md'
+'/src/~$_report_template.docx' -> '/build/student_code/~$_report_template.docx'
+✱ Running /bin/bash -c "cp /ece408/project/build/weights-86.bin /build"
+✱ Running /bin/bash -c "cp -rv /src/custom/* /ece408/project/src/layer/custom"
+'/src/custom/cpu-new-forward.cc' -> '/ece408/project/src/layer/custom/cpu-new-forward.cc'
+'/src/custom/cpu-new-forward.h' -> '/ece408/project/src/layer/custom/cpu-new-forward.h'
+'/src/custom/gpu-new-forward.h' -> '/ece408/project/src/layer/custom/gpu-new-forward.h'
+'/src/custom/new-forward.cu' -> '/ece408/project/src/layer/custom/new-forward.cu'
+✱ Running /bin/bash -c "cmake  /ece408/project/ && make -j8"
+-- The C compiler identification is GNU 7.5.0
+-- The CXX compiler identification is GNU 7.5.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Looking for pthread_create
+-- Looking for pthread_create - not found
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - found
+-- Found Threads: TRUE
+-- Found CUDA: /usr/local/cuda (found version "10.2")
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /build
+Scanning dependencies of target ece408net
+[  3%] Building NVCC (Device) object src/CMakeFiles/GpuConv.dir/layer/custom/GpuConv_generated_gpu-utils.cu.o
+[  6%] Building NVCC (Device) object src/CMakeFiles/GpuConv.dir/layer/custom/GpuConv_generated_new-forward.cu.o
+[ 10%] Building CXX object CMakeFiles/ece408net.dir/ece408net.cc.o
+[ 13%] Linking CXX static library libece408net.a
+[ 13%] Built target ece408net
+Scanning dependencies of target GpuConv
+[ 17%] Linking CXX static library libGpuConv.a
+[ 17%] Built target GpuConv
+Scanning dependencies of target MiniDNNLib
+[ 20%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/ave_pooling.cc.o
+[ 24%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/max_pooling.cc.o
+[ 27%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/mnist.cc.o
+[ 31%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/conv_cpu.cc.o
+[ 34%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/conv_cust.cc.o
+[ 37%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/network.cc.o
+[ 41%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/conv.cc.o
+[ 44%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/fully_connected.cc.o
+[ 48%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/relu.cc.o
+[ 51%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/sigmoid.cc.o
+[ 55%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/softmax.cc.o
+[ 58%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/loss/cross_entropy_loss.cc.o
+[ 62%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/loss/mse_loss.cc.o
+[ 65%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/optimizer/sgd.cc.o
+[ 68%] Building CXX object src/CMakeFiles/MiniDNNLib.dir/layer/custom/cpu-new-forward.cc.o
+[ 72%] Linking CXX static library libMiniDNNLib.a
+[ 72%] Built target MiniDNNLib
+Scanning dependencies of target final
+Scanning dependencies of target m1
+Scanning dependencies of target m3
+Scanning dependencies of target m2
+[ 75%] Building CXX object CMakeFiles/final.dir/final.cc.o
+[ 79%] Building CXX object CMakeFiles/m1.dir/m1.cc.o
+[ 82%] Building CXX object CMakeFiles/m3.dir/m3.cc.o
+[ 86%] Building CXX object CMakeFiles/m2.dir/m2.cc.o
+[ 89%] Linking CXX executable m3
+[ 93%] Linking CXX executable final
+[ 96%] Linking CXX executable m2
+[100%] Linking CXX executable m1
+[100%] Built target m3
+[100%] Built target m2
+[100%] Built target final
+[100%] Built target m1
+✱ Running bash -c "time ./m3 100"   \\ Output will appear after run is complete.
+Test batch size: 100
+Loading fashion-mnist data...Done
+Loading model...Done
+Conv-GPU==
+Convolution Kernel: Basline
+Layer Time: 6.86946 ms
+Op Time: 0.195673 ms
+Conv-GPU==
+Convolution Kernel: Basline
+Layer Time: 7.84478 ms
+Op Time: 0.657652 ms
+
+Test Accuracy: 0.86
+
+
+real	0m1.345s
+user	0m1.172s
+sys	0m0.147s
+✱ Running bash -c "time ./m3 1000"   \\ Output will appear after run is complete.
+Test batch size: 1000
+Loading fashion-mnist data...Done
+Loading model...Done
+Conv-GPU==
+Convolution Kernel: Basline
+Layer Time: 60.9239 ms
+Op Time: 1.65701 ms
+Conv-GPU==
+Convolution Kernel: Basline
+Layer Time: 49.5951 ms
+Op Time: 6.23004 ms
+
+Test Accuracy: 0.886
+
+
+real	0m10.051s
+user	0m9.783s
+sys	0m0.252s
+✱ Running bash -c "time ./m3 10000"   \\ Output will appear after run is complete.
+Test batch size: 10000
+Loading fashion-mnist data...Done
+Loading model...Done
+Conv-GPU==
+Convolution Kernel: Basline
+Layer Time: 591.131 ms
+Op Time: 16.0772 ms
+Conv-GPU==
+Convolution Kernel: Basline
+Layer Time: 493.125 ms
+Op Time: 62.2361 ms
+
+Test Accuracy: 0.8714
+
+
+real	1m38.942s
+user	1m37.473s
+sys	0m1.460s
+✱ Running bash -c "nsys profile --stats=true ./m3 10000"   \\ Output will appear after run is complete.
+**** collection configuration ****
+	force-overwrite = false
+	stop-on-exit = true
+	export_sqlite = true
+	stats = true
+	capture-range = none
+	stop-on-range-end = false
+	Beta: ftrace events:
+	ftrace-keep-user-config = false
+	trace-GPU-context-switch = false
+	delay = 0 seconds
+	duration = 0 seconds
+	kill = signal number 15
+	inherit-environment = true
+	show-output = true
+	trace-fork-before-exec = false
+	sample_cpu = true
+	backtrace_method = LBR
+	wait = all
+	trace_cublas = false
+	trace_cuda = true
+	trace_cudnn = false
+	trace_nvtx = true
+	trace_mpi = false
+	trace_openacc = false
+	trace_vulkan = false
+	trace_opengl = true
+	trace_osrt = true
+	osrt-threshold = 0 nanoseconds
+	cudabacktrace = false
+	cudabacktrace-threshold = 0 nanoseconds
+	profile_processes = tree
+	application command = ./m3
+	application arguments = 10000
+	application working directory = /build
+	NVTX profiler range trigger =
+	NVTX profiler domain trigger =
+	environment variables:
+	Collecting data...
+Test batch size: 10000
+Loading fashion-mnist data...Done
+Loading model...Done
+Conv-GPU==
+Convolution Kernel: Basline
+Layer Time: 616.42 ms
+Op Time: 16.1365 ms
+Conv-GPU==
+Convolution Kernel: Basline
+Layer Time: 490.608 ms
+Op Time: 62.4207 ms
+
+Test Accuracy: 0.8714
+
+	Generating the /build/report1.qdstrm file.
+	Capturing raw events...
+
+	**** WARNING: The collection generated 650528 total events. ****
+	Importing this QDSTRM file into the NVIDIA Nsight Systems GUI may take several minutes to complete.
+
+	Capturing symbol files...
+	Saving diagnostics...
+	Saving qdstrm file to disk...
+	Finished saving file.
+
+
+Importing the qdstrm file using /opt/nvidia/nsight-systems/2019.5.2/host-linux-x64/QdstrmImporter.
+
+Importing...
+
+Importing [==================================================100%]
+Saving report to file "/build/report1.qdrep"
+Report file saved.
+Please discard the qdstrm file and use the qdrep file instead.
+
+Removed /build/report1.qdstrm as it was successfully imported.
+Please use the qdrep file instead.
+
+Exporting the qdrep file to SQLite database using /opt/nvidia/nsight-systems/2019.5.2/host-linux-x64/nsys-exporter.
+
+Exporting 650424 events:
+
+0%   10   20   30   40   50   60   70   80   90   100%
+|----|----|----|----|----|----|----|----|----|----|
+***************************************************
+
+Exported successfully to
+/build/report1.sqlite
+
+Generating CUDA API Statistics...
+CUDA API Statistics (nanoseconds)
+
+Time(%)      Total Time       Calls         Average         Minimum         Maximum  Name
+-------  --------------  ----------  --------------  --------------  --------------  --------------------------------------------------------------------------------
+   76.2      1027285247           8     128410655.9           16814       558121115  cudaMemcpy
+   16.6       223051783           8      27881472.9           73237       219633088  cudaMalloc
+    5.8        78461796           6      13076966.0            2869        62355731  cudaDeviceSynchronize
+    1.2        16033211           6       2672201.8           21367        15879217  cudaLaunchKernel
+    0.2         2715445           8        339430.6           68162          975676  cudaFree
+    0.0           20580           2         10290.0            7303           13277  cudaMemcpyToSymbol
+
+
+
+
+Generating CUDA Kernel Statistics...
+
+Generating CUDA Memory Operation Statistics...
+CUDA Kernel Statistics (nanoseconds)
+
+Time(%)      Total Time   Instances         Average         Minimum         Maximum  Name
+-------  --------------  ----------  --------------  --------------  --------------  --------------------------------------------------------------------------------
+  100.0        78436550           2      39218275.0        16085301        62351249  baseline_conv_forward_kernel
+    0.0            2752           2          1376.0            1376            1376  do_not_remove_this_kernel
+    0.0            2624           2          1312.0            1280            1344  prefn_marker_kernel
+
+
+CUDA Memory Operation Statistics (nanoseconds)
+
+Time(%)      Total Time  Operations         Average         Minimum         Maximum  Name
+-------  --------------  ----------  --------------  --------------  --------------  --------------------------------------------------------------------------------
+   93.0       950166985           2     475083492.5       392894083       557272902  [CUDA memcpy DtoH]
+    7.0        71443774           8       8930471.7            1216        39497350  [CUDA memcpy HtoD]
+
+
+CUDA Memory Operation Statistics (KiB)
+
+            Total      Operations            Average            Minimum            Maximum  Name
+-----------------  --------------  -----------------  -----------------  -----------------  --------------------------------------------------------------------------------
+        1722500.0               2           861250.0         722500.000          1000000.0  [CUDA memcpy DtoH]
+         538932.0               8            67366.0              0.004           288906.0  [CUDA memcpy HtoD]
+
+
+
+
+Generating Operating System Runtime API Statistics...
+Operating System Runtime API Statistics (nanoseconds)
+
+Time(%)      Total Time       Calls         Average         Minimum         Maximum  Name
+-------  --------------  ----------  --------------  --------------  --------------  --------------------------------------------------------------------------------
+   36.2     95781376636         972      98540510.9           21936       100202533  sem_timedwait
+   36.2     95669533066         970      98628384.6           33674       100329521  poll
+   15.4     40721004724           1   40721004724.0     40721004724     40721004724  pthread_cond_wait
+   12.1     32009362802          64     500146293.8       500100455       500180963  pthread_cond_timedwait
+    0.1       136707428         915        149407.0            1056        16862590  ioctl
+    0.0        18847030          26        724885.8            1124        18775356  fopen
+    0.0        17885856        9072          1971.5            1273           18517  read
+    0.0         2884115          98         29429.7            1223         1152474  mmap
+    0.0         1100180         101         10892.9            4750           26966  open64
+    0.0          320425           1        320425.0          320425          320425  pthread_mutex_lock
+    0.0          294758           5         58951.6           37571           77778  pthread_create
+    0.0          139749           3         46583.0           43643           50978  fgets
+    0.0           78869          17          4639.4            1297           12962  munmap
+    0.0           64065          15          4271.0            2294            6614  write
+    0.0           61428          11          5584.4            1044            9903  fflush
+    0.0           27041           5          5408.2            3194            7101  open
+    0.0           21732           3          7244.0            3110            9870  fopen64
+    0.0           20840          11          1894.5            1003            3855  fclose
+    0.0           10865           2          5432.5            4099            6766  socket
+    0.0            8870           2          4435.0            4120            4750  pthread_cond_signal
+    0.0            8370           4          2092.5            1044            4398  fwrite
+    0.0            7442           1          7442.0            7442            7442  pipe2
+    0.0            6559           1          6559.0            6559            6559  connect
+    0.0            3529           3          1176.3            1076            1262  fcntl
+    0.0            2069           1          2069.0            2069            2069  bind
+
+
+
+
+Generating NVTX Push-Pop Range Statistics...
+NVTX Push-Pop Range Statistics (nanoseconds)
+✱ Running bash -c "nv-nsight-cu-cli --section '.*' -o M3-analysis_file ./m3"   \\ Output will appear after run is complete.
+Test batch size: 10000
+Loading fashion-mnist data...Done
+Loading model...Done
+Conv-GPU==
+==PROF== Connected to process 727 (/build/m3)
+==PROF== Profiling "prefn_marker_kernel()" - 1: 0%....50%....100% - 73 passes
+Convolution Kernel: Basline
+==PROF== Profiling "baseline_conv_forward_kernel" - 2: 0%....50%....100% - 74 passes
+==PROF== Profiling "do_not_remove_this_kernel()" - 3: 0%....50%....100% - 73 passes
+Layer Time: 10702.3 ms
+Op Time: 10111 ms
+Conv-GPU==
+==PROF== Profiling "prefn_marker_kernel()" - 4: 0%....50%....100% - 73 passes
+Convolution Kernel: Basline
+==PROF== Profiling "baseline_conv_forward_kernel" - 5: 0%....50%....100% - 74 passes
+==PROF== Profiling "do_not_remove_this_kernel()" - 6: 0%....50%....100% - 73 passes
+Layer Time: 28604.8 ms
+Op Time: 28162.8 ms
+
+Test Accuracy: 0.8714
+
+==PROF== Disconnected from process 727
+==PROF== Report: /build/M3-analysis_file.ncu-rep
